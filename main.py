@@ -1,34 +1,70 @@
 import cv2
+import os
 
-# Load pretrained face frontal xml file
 trained_face_data = cv2.CascadeClassifier(
     'haarcascade_frontalface_default.xml')
 
-# Read video data ==> if prop is 0 - this 'll use default camera and you can pass video path, too
-cam = cv2.VideoCapture(0)
+capture = cv2.VideoCapture(0)
 
-# Start infinite while loop to read each frame
+
+def change_resolution(frame, width, height):
+    frame.set(3, width)
+    frame.set(4, height)
+
+
+def rescale_frame(frame, percent):
+    width = int(frame.shape[1] * percent / 100)
+    height = int(frame.shape[0] * percent / 100)
+    dim = (width, height)
+    return cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
+
+filename = 'video.avi'
+frames_per_second = 24.0
+res = '720p'
+
+STD_DIMENSIONS = {
+    "480p": (640, 480),
+    "720p": (1280, 720),
+    "1080p": (1920, 1080),
+    "4k": (3840, 2160),
+}
+
+
+def get_dims(capture, res='1080p'):
+    width, height = STD_DIMENSIONS["480p"]
+    if res in STD_DIMENSIONS:
+        width, height = STD_DIMENSIONS[res]
+    change_resolution(capture, width, height)
+    return width, height
+
+
+VIDEO_TYPE = {
+    'avi': cv2.VideoWriter_fourcc(*'XVID'),
+    'mp4': cv2.VideoWriter_fourcc(*'XVID'),
+}
+
+
+def get_video_type(filename):
+    filename, ext = os.path.splitext(filename)
+    if ext in VIDEO_TYPE:
+        return VIDEO_TYPE[ext]
+    return VIDEO_TYPE['avi']
+
+
+out = cv2.VideoWriter(filename, get_video_type(
+    filename), 25, get_dims(capture, res))
+
 while True:
-    # Read each frame during the loop
-    successful_frame, frame = cam.read()
-
-    # Convert frame to Gray Scale
+    successful_frame, frame = capture.read()
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Detect face in the frame
     face_coords = trained_face_data.detectMultiScale(gray_frame)
-
-    # Draw rectangle on the frame
     for (x, y, w, h) in face_coords:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-    # Show Frame
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
     cv2.imshow('Face Detector', frame)
-    key = cv2.waitKey(1)
-
-    # Break the loop on key press; q or Q
-    if key == 81 or key == 113:
+    if cv2.waitKey(20) & 0xFF == ord('q'):
         break
 
-# Release the video capture
-cam.release()
+capture.release()
+out.release()
+cv2.destroyAllWindows()
