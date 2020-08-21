@@ -1,8 +1,16 @@
 import cv2
 import os
+import pickle
 
 trained_face_data = cv2.CascadeClassifier(
     'haarcascade_frontalface_default.xml')
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.read('trainer.yml')
+
+labels = {}
+with open('label.pickle', 'rb') as file:
+    labels = pickle.load(file)
+    labels = {v: k for k, v in labels.items()}
 
 capture = cv2.VideoCapture(0)
 
@@ -51,20 +59,24 @@ def get_video_type(filename):
         return VIDEO_TYPE[ext]
     return VIDEO_TYPE['avi']
 
+# Capture video obj
+# out = cv2.VideoWriter(filename, get_video_type(
+#     filename), 25, get_dims(capture, res))
 
-out = cv2.VideoWriter(filename, get_video_type(
-    filename), 25, get_dims(capture, res))
 
 while True:
     successful_frame, frame = capture.read()
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     face_coords = trained_face_data.detectMultiScale(gray_frame)
     for (x, y, w, h) in face_coords:
+        roi_gray = gray_frame[y:y+h, x:x+w]
+        id_, conf = recognizer.predict(roi_gray)
+        if conf >= 60 and conf <= 80:
+            cv2.putText(
+                frame, labels[id_], (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
     cv2.imshow('Face Detector', frame)
     if cv2.waitKey(20) & 0xFF == ord('q'):
         break
-
 capture.release()
-out.release()
 cv2.destroyAllWindows()
