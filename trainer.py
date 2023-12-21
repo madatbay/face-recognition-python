@@ -8,9 +8,8 @@ import pickle
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_DIR = os.path.join(BASE_DIR, "images")
 
-trained_face_data = cv2.CascadeClassifier(
-    'haarcascade_frontalface_default.xml')
-recognizer = cv2.face.LBPHFaceRecognizer_create()
+trained_face_data = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+recognizer = cv2.face.LBPHFaceRecognizer.create()
 
 current_id = 0
 label_ids = {}
@@ -22,7 +21,7 @@ for root, dirs, files in os.walk(IMAGE_DIR):
         if file.endswith("png") or file.endswith("jpg"):
             path = os.path.join(root, file)
             label = os.path.basename(root).replace(" ", "-").lower()
-            if not label in label_ids:
+            if label not in label_ids:
                 label_ids[label] = current_id
                 current_id += 1
             id_ = label_ids[label]
